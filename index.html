@@ -388,7 +388,7 @@
         return str.split('').map(char => {
           const code = char.charCodeAt(0);
           if (code >= 65 && code <= 90) {
-            return String.fromCharCode(((code - 65 + shift) % 26) + 65);
+            return String.fromCharCode(((code - 65 + shift + 26) % 26) + 65);
           }
           return char;
         }).join('');
@@ -401,8 +401,11 @@
 
         if (encodedWord) {
           secretWord = caesarShift(decodeURIComponent(encodedWord), -5);
-          victoryMessage = encodedMessage ? decodeURIComponent(caesarShift(decodeURIComponent(encodedMessage), -5)) : 'You unlocked the secret!';
-          // Note: The previous logic had a slight error with double-decoding. This corrects it.
+          if (encodedMessage) {
+              victoryMessage = caesarShift(decodeURIComponent(encodedMessage), -5);
+          } else {
+              victoryMessage = 'You unlocked the secret!';
+          }
         }
       }
 
