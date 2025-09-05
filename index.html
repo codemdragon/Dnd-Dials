@@ -154,7 +154,6 @@
   };
   const LETTERS = Object.keys(MORSE);
 
-  // Caesar cipher functions
   function caesarEncode(text, shift = 5) {
     return text.replace(/[A-Za-z]/g, char => {
       const isUpperCase = char === char.toUpperCase();
@@ -173,12 +172,10 @@
     });
   }
 
-  // Get and decode URL parameters
   const params = new URLSearchParams(location.search);
-  let encodedWord = params.get('word') || 'KNWJ'; // Default 'FIRE' encoded as 'KNWJ'
-  let encodedMsg = params.get('msg') || 'Tujsy%25bs%25iwj%25hwp%25fsi%25ymnj%25qnsijx%25tujqf%3F'; // Default message encoded
-  
-  // Decode parameters
+  let encodedWord = params.get('word') || 'KNWJ';
+  let encodedMsg = params.get('msg') || 'Tujsy%25bs%25iwj%25hwp%25fsi%25ymnj%25qnsijx%25tujqf%3F';
+
   let TARGET = caesarDecode(encodedWord);
   let WINMSG = decodeURIComponent(caesarDecode(encodedMsg));
 
@@ -273,13 +270,15 @@
     wordEl.textContent = letters || '•';
   }
 
+  // 🔧 FIXED checkSolved: button never disabled, always clickable
   function checkSolved(){
     const letters = currentLetters();
     isSolved = letters === TARGET;
     gate.classList.toggle('unlocked', isSolved);
     gate.classList.toggle('locked', !isSolved);
     gate.querySelector('.status').textContent = isSolved ? 'UNLOCKED' : 'LOCKED';
-    unlockBtn.disabled = !isSolved;
+
+    unlockBtn.disabled = false; // keep clickable
     return isSolved;
   }
 
@@ -291,7 +290,6 @@
   function shuffle(){ dials.forEach(d=> d.setIndex(Math.floor(Math.random()*LETTERS.length))); }
 
   function share(){
-    // Encode parameters before sharing
     const encodedWord = caesarEncode(TARGET);
     const encodedMsg = encodeURIComponent(caesarEncode(WINMSG));
     
@@ -305,20 +303,22 @@
     });
   }
 
+  // 🔧 FIXED unlock: always shows modal (correct or wrong)
   function unlock() {
     const letters = currentLetters();
+    console.log('Unlock clicked — letters:', letters, 'TARGET:', TARGET);
+
     if (letters === TARGET) {
-        modalTitle.textContent = "Box Unlocked!";
-        msg.innerHTML = WINMSG + `<br><br>Word: ${TARGET}`;
-        overlay.classList.add('show');
+      modalTitle.textContent = "Box Unlocked!";
+      msg.innerHTML = WINMSG + `<br><br>Word: ${TARGET}`;
+      overlay.classList.add('show');
     } else {
-        modalTitle.textContent = "Incorrect Combination";
-        msg.textContent = `"${letters}" is not the correct word. Keep trying!`;
-        overlay.classList.add('show');
+      modalTitle.textContent = "Incorrect Combination";
+      msg.textContent = `"${letters}" is not the correct word. Keep trying!`;
+      overlay.classList.add('show');
     }
   }
 
-  // Set up event listeners
   document.getElementById('btnShuffle').addEventListener('click', shuffle);
   document.getElementById('btnShare').addEventListener('click', share);
   unlockBtn.addEventListener('click', unlock);
@@ -326,15 +326,10 @@
     overlay.classList.remove('show');
   });
 
-  // Initialize the puzzle
   rebuild();
-
-  // Debugging: Log the target word to console
   console.log("Target word:", TARGET);
-  
-  window.setWord = function(w){ TARGET = String(w||'').toUpperCase().replace(/[^A-Z]/g,''); if(!TARGET) TARGET='FIRE'; rebuild(); }
-  window.setWinMsg = function(s){ }
 })();
 </script>
+
 </body>
 </html>
