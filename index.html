@@ -51,7 +51,11 @@
       width:min(180px,22vw); background:linear-gradient(180deg, #0f1624, #0c1220);
       border:1px solid rgba(255,255,255,.08); border-radius:18px; position:relative; overflow:hidden; box-shadow:0 4px 30px rgba(0,0,0,.35);
       display:flex; flex-direction:column; align-items:stretch; justify-content:space-between;
+      outline: none; /* Hide focus outline, but it's still focusable */
     }
+    .dial:focus-visible { box-shadow: 0 0 0 2px var(--accent); } /* Show focus ring for keyboard users */
+
+
     .dial .head{display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.06);}
     .dial .label{font-size:12px; color:var(--muted); letter-spacing:.4px}
     .dial .index{font-variant-numeric:tabular-nums; font-weight:700; color:#c8d7ff}
@@ -147,7 +151,7 @@
   const MORSE = {
     A: ".-",   B: "-...", C: "-.-.", D: "-..",  E: ".",
     F: "..-.", G: "--.",  H: "....", I: "..",   J: ".---",
-    K: "-.-",  L: ".-..", M: "--",   N: "-.",  O: "---",
+    K: "-.-",  L: ".-..", M: "--",   N: "-.",   O: "---",
     P: ".--.", Q: "--.-", R: ".-.",  S: "...",  T: "-",
     U: "..-",  V: "...-", W: ".--",  X: "-..-", Y: "-.--",
     Z: "--.."
@@ -196,6 +200,9 @@
   function makeDial(i){
     const dial = document.createElement('div');
     dial.className = 'dial';
+    // FIX START: Make the dial focusable for keyboard events
+    dial.setAttribute('tabindex', '0');
+    // FIX END
 
     const windowEl = document.createElement('div');
     windowEl.className = 'window';
@@ -243,6 +250,24 @@
 
     up.addEventListener('click', ()=> setIndex(state.index-1));
     down.addEventListener('click', ()=> setIndex(state.index+1));
+    
+    // FIX START: Add event listeners for mouse wheel and keyboard arrows
+    dial.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const direction = Math.sign(e.deltaY); // -1 for up, 1 for down
+        setIndex(state.index + direction);
+    });
+
+    dial.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setIndex(state.index - 1);
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setIndex(state.index + 1);
+        }
+    });
+    // FIX END
 
     setIndex(Math.floor(Math.random()*LETTERS.length));
 
