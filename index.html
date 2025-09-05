@@ -80,9 +80,25 @@
     .toast{ position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:#0f1624; border:1px solid rgba(255,255,255,.1); padding:10px 14px; border-radius:10px; color:var(--text); display:none }
     .toast.show{ display:block }
 
-    .overlay{ position:fixed; inset:0; background:radial-gradient(900px 600px at 50% -10%, rgba(52,211,153,.12), transparent 60%), rgba(0,0,0,.45); display:none; place-items:center; }
+    .overlay{ 
+      position:fixed; 
+      inset:0; 
+      background:radial-gradient(900px 600px at 50% -10%, rgba(52,211,153,.12), transparent 60%), rgba(0,0,0,.75); 
+      display:none; 
+      place-items:center; 
+      z-index: 1000;
+    }
     .overlay.show{ display:grid }
-    .modal{ background:linear-gradient(180deg, #162238, #0f182b); border:1px solid rgba(255,255,255,.12); border-radius:20px; padding:22px; width:min(520px, 92vw); text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.5) }
+    .modal{ 
+      background:linear-gradient(180deg, #162238, #0f182b); 
+      border:1px solid rgba(255,255,255,.12); 
+      border-radius:20px; 
+      padding:22px; 
+      width:min(520px, 92vw); 
+      text-align:center; 
+      box-shadow:0 20px 60px rgba(0,0,0,.5);
+      z-index: 1001;
+    }
     .modal h2{ margin:0 0 8px }
     .modal p{ color:var(--muted); margin:0 0 16px }
     
@@ -109,7 +125,7 @@
         <div class="status">LOCKED</div>
         <div class="word" id="currentWord">••••</div>
         <div class="gate-controls">
-          <button id="btnUnlock" disabled>Unlock</button>
+          <button id="btnUnlock">Unlock</button>
         </div>
         <div class="hint">Tip: use your mouse wheel or arrow buttons on each dial. Keyboard: Tab to focus a dial, then use ↑/↓.</div>
       </div>
@@ -293,7 +309,7 @@
     const letters = currentLetters();
     if (letters === TARGET) {
         modalTitle.textContent = "Box Unlocked!";
-        msg.textContent = WINMSG + `\nWord: ${TARGET}`;
+        msg.innerHTML = WINMSG + `<br><br>Word: ${TARGET}`;
         overlay.classList.add('show');
     } else {
         modalTitle.textContent = "Incorrect Combination";
@@ -313,6 +329,9 @@
   // Initialize the puzzle
   rebuild();
 
+  // Debugging: Log the target word to console
+  console.log("Target word:", TARGET);
+  
   window.setWord = function(w){ TARGET = String(w||'').toUpperCase().replace(/[^A-Z]/g,''); if(!TARGET) TARGET='FIRE'; rebuild(); }
   window.setWinMsg = function(s){ }
 })();
