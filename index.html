@@ -200,9 +200,7 @@
   function makeDial(i){
     const dial = document.createElement('div');
     dial.className = 'dial';
-    // FIX START: Make the dial focusable for keyboard events
     dial.setAttribute('tabindex', '0');
-    // FIX END
 
     const windowEl = document.createElement('div');
     windowEl.className = 'window';
@@ -215,7 +213,6 @@
       cell.className = 'cell';
       cell.setAttribute('data-i', idx);
 
-      // ✅ only show Morse, no letters
       const morse = document.createElement('div');
       morse.className='morse';
       morse.textContent = MORSE[L];
@@ -235,14 +232,24 @@
     dial.appendChild(ctrls);
 
     const state = { root:dial, strip, index:0 };
+    let cellHeight = 0; // Cache for the calculated cell height
 
     function setIndex(newIndex){
       const max = LETTERS.length;
       state.index = (newIndex % max + max) % max;
+      
+      // Calculate height only once for performance and to avoid timing issues
+      if (!cellHeight) {
+          const cellEl = strip.querySelector('.cell');
+          if (cellEl && cellEl.offsetHeight > 0) {
+              cellHeight = cellEl.offsetHeight + 8; // The total step height including gap
+          } else {
+              return; // Height not available yet, exit to prevent errors
+          }
+      }
 
-      const cellH = strip.querySelector('.cell').offsetHeight + 8;
-      const offset = (windowEl.clientHeight/2) - (cellH/2);
-      strip.style.transform = `translateY(${offset - state.index*cellH}px)`;
+      const offset = (windowEl.clientHeight/2) - (cellHeight/2);
+      strip.style.transform = `translateY(${offset - state.index * cellHeight}px)`;
 
       [...strip.children].forEach((c, idx)=> c.classList.toggle('active', idx===state.index));
       onChange();
@@ -251,7 +258,6 @@
     up.addEventListener('click', ()=> setIndex(state.index-1));
     down.addEventListener('click', ()=> setIndex(state.index+1));
     
-    // FIX START: Add event listeners for mouse wheel and keyboard arrows
     dial.addEventListener('wheel', (e) => {
         e.preventDefault();
         const direction = Math.sign(e.deltaY); // -1 for up, 1 for down
@@ -267,29 +273,28 @@
             setIndex(state.index + 1);
         }
     });
-    // FIX END
 
-    setIndex(Math.floor(Math.random()*LETTERS.length));
-
+    // DO NOT set index here. It will be set in rebuild() after the element is in the DOM.
     return { ...state, setIndex };
   }
 
   function rebuild(){
     lockEl.innerHTML=''; dials.length = 0;
 
-    // 🔧 Target Morse sequence
     TARGET_MORSE = TARGET.split('').map(L => MORSE[L]).join(' ');
 
     for(let i=0;i<TARGET.length;i++){
       const d = makeDial(i); 
       dials.push(d); 
       lockEl.appendChild(d.root);
+      // FIX: Set the initial random index AFTER the dial is added to the page.
+      // This ensures its dimensions can be calculated correctly.
+      d.setIndex(Math.floor(Math.random()*LETTERS.length));
     }
     updateWord();
     checkSolved();
   }
 
-  // Current Morse sequence
   function currentLetters(){
     return dials.map(d => {
       const L = LETTERS[d.index];
@@ -317,7 +322,9 @@
     checkSolved();
   }
 
-  function shuffle(){ dials.forEach(d=> d.setIndex(Math.floor(Math.random()*LETTERS.length))); }
+  function shuffle(){ 
+    dials.forEach(d=> d.setIndex(Math.floor(Math.random()*LETTERS.length))); 
+  }
 
   function share(){
     const encodedWord = caesarEncode(TARGET);
