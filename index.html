@@ -120,7 +120,7 @@
     <div class="modal">
       <h2 id="modalTitle">Box Status</h2>
       <p id="msg"></p>
-      <button onclick="document.getElementById('overlay').classList.remove('show')">Close</button>
+      <button id="closeModal">Close</button>
     </div>
   </div>
 
@@ -174,6 +174,7 @@
   const modalTitle = document.getElementById('modalTitle');
   const toast = document.getElementById('toast');
   const unlockBtn = document.getElementById('btnUnlock');
+  const closeModalBtn = document.getElementById('closeModal');
 
   const dials = [];
   let isSolved = false;
@@ -247,6 +248,7 @@
       const d = makeDial(i); dials.push(d); lockEl.appendChild(d.root);
     }
     updateWord();
+    checkSolved();
   }
 
   function currentLetters(){ return dials.map(d=> LETTERS[d.index]).join(''); }
@@ -300,10 +302,15 @@
     }
   }
 
+  // Set up event listeners
   document.getElementById('btnShuffle').addEventListener('click', shuffle);
   document.getElementById('btnShare').addEventListener('click', share);
   unlockBtn.addEventListener('click', unlock);
+  closeModalBtn.addEventListener('click', () => {
+    overlay.classList.remove('show');
+  });
 
+  // Initialize the puzzle
   rebuild();
 
   window.setWord = function(w){ TARGET = String(w||'').toUpperCase().replace(/[^A-Z]/g,''); if(!TARGET) TARGET='FIRE'; rebuild(); }
