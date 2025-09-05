@@ -1,357 +1,261 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Morse Dial Puzzle Box</title>
-  <style>
-    :root{
-      --bg:#0b0f14;
-      --panel:#121925;
-      --accent:#6ee7ff;
-      --accent2:#a78bfa;
-      --good:#34d399;
-      --warn:#f59e0b;
-      --bad:#ef4444;
-      --text:#e6f1ff;
-      --muted:#97a3b6;
-      --ring: 0 0 0 2px rgba(110,231,255,.15), 0 0 32px rgba(110,231,255,.08) inset;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; 
-      background: radial-gradient(1200px 700px at 70% -10%, #162032 0%, var(--bg) 60%);
-      color:var(--text); display:flex; align-items:center; justify-content:center; padding:24px;
-    }
-    .app{width:min(1100px,100%);}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morse Dial Puzzle Box</title>
+    <style>
+        :root {
+            --primary-color: #333;
+            --secondary-color: #555;
+            --accent-color: #f0c040;
+            --text-color: #fff;
+            --border-radius: 10px;
+        }
 
-    header{display:flex; gap:16px; align-items:center; justify-content:space-between; margin-bottom:16px}
-    .title{font-size:clamp(20px,3vw,28px); letter-spacing:.5px; font-weight:700}
-    .subtitle{color:var(--muted); font-size:14px}
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            margin: 0;
+        }
 
-    .wrap{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.06); border-radius:20px; padding:18px; box-shadow:0 10px 40px rgba(0,0,0,.35);}
+        .puzzle-container {
+            text-align: center;
+            background: var(--secondary-color);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            max-width: 600px;
+        }
 
-    .controls{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
-    button, .btn{
-      background:linear-gradient(180deg, #1a2436, #12192a);
-      color:var(--text); border:1px solid rgba(255,255,255,.08); padding:10px 14px; border-radius:12px;
-      cursor:pointer; transition:transform .05s ease, box-shadow .2s ease, border-color .2s ease; box-shadow:var(--ring);
-      font-weight:600; letter-spacing:.3px; user-select:none;
-    }
-    button:hover{border-color:rgba(110,231,255,.35)}
-    button:active{transform:translateY(1px)}
-    .ghost{background:transparent; border-color:rgba(255,255,255,.12)}
+        h1 {
+            color: var(--accent-color);
+        }
 
-    .grid{display:grid; gap:18px;}
-    @media (min-width:900px){ .grid{ grid-template-columns: 1fr; } }
+        .dials-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
 
-    .lock{display:flex; gap:16px; justify-content:center; align-items:stretch; padding:18px;}
-    .dial{
-      width:min(180px,22vw); background:linear-gradient(180deg, #0f1624, #0c1220);
-      border:1px solid rgba(255,255,255,.08); border-radius:18px; position:relative; overflow:hidden; box-shadow:0 4px 30px rgba(0,0,0,.35);
-      display:flex; flex-direction:column; align-items:stretch; justify-content:space-between;
-      outline: none; /* Hide focus outline, but it's still focusable */
-    }
-    .dial:focus-visible { box-shadow: 0 0 0 2px var(--accent); } /* Show focus ring for keyboard users */
+        .dial-display-window {
+            height: 30px;
+            background: var(--primary-color);
+            border: 2px solid var(--accent-color);
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            line-height: 30px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-align: center;
+        }
 
+        .dial {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            border: 2px solid var(--accent-color);
+            overflow: hidden;
+            cursor: pointer;
+            user-select: none;
+        }
 
-    .dial .head{display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.06);}
-    .dial .label{font-size:12px; color:var(--muted); letter-spacing:.4px}
-    .dial .index{font-variant-numeric:tabular-nums; font-weight:700; color:#c8d7ff}
+        .dial-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.3s ease-in-out;
+        }
 
-    .window{ position:relative; height:140px; margin:10px; border-radius:12px; border:1px solid rgba(255,255,255,.06); background:radial-gradient(240px 120px at 50% 10%, rgba(167,139,250,.15), transparent 60%); overflow:hidden; }
-    .strip{ position:absolute; left:0; right:0; top:0; display:flex; flex-direction:column; align-items:center; gap:8px; transition: transform .25s cubic-bezier(.2,.7,.2,1); padding:8px 0; }
-    .cell{ padding:6px 10px; min-height:28px; display:flex; align-items:center; gap:8px; opacity:.45; filter:saturate(.7); }
-    .cell .morse{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; letter-spacing:2px; }
-    .cell .letter{ font-size:12px; color:var(--muted); opacity:.0; transition:opacity .2s; }
+        .dial-character {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            font-size: 1.2rem;
+            color: var(--text-color);
+        }
 
-    .cell.active{ opacity:1; filter:none; transform:scale(1.03); }
-    .cell.active .letter.revealed{ opacity:.9; }
+        #unlock-btn {
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: var(--accent-color);
+            color: var(--primary-color);
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
 
-    .dial .controls{ padding:10px; border-top:1px solid rgba(255,255,255,.06); display:flex; gap:8px; justify-content:space-between }
-    .arrow{ width:40px; height:40px; border-radius:10px; font-size:18px; display:flex; align-items:center; justify-content:center; }
+        #unlock-btn:hover {
+            background-color: darken(var(--accent-color), 10%);
+        }
 
-    .gate{ margin-top:16px; text-align:center; }
-    .gate .status{ font-weight:700; letter-spacing:.4px; }
-    .gate.locked .status{ color:var(--warn); }
-    .gate.unlocked .status{ color:var(--good); text-shadow:0 0 18px rgba(52,211,153,.35); }
-    .gate .word{ margin-top:8px; font-size:22px; letter-spacing:6px; }
+        #message {
+            margin-top: 15px;
+            font-size: 1.1rem;
+            height: 20px;
+        }
 
-    .hint{ color:var(--muted); font-size:13px; margin-top:10px }
-    .divider{height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent); margin:14px 0}
-
-    .toast{ position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:#0f1624; border:1px solid rgba(255,255,255,.1); padding:10px 14px; border-radius:10px; color:var(--text); display:none }
-    .toast.show{ display:block }
-
-    .overlay{ 
-      position:fixed; 
-      inset:0; 
-      background:radial-gradient(900px 600px at 50% -10%, rgba(52,211,153,.12), transparent 60%), rgba(0,0,0,.75); 
-      display:none; 
-      place-items:center; 
-      z-index: 1000;
-    }
-    .overlay.show{ display:grid }
-    .modal{ 
-      background:linear-gradient(180deg, #162238, #0f182b); 
-      border:1px solid rgba(255,255,255,.12); 
-      border-radius:20px; 
-      padding:22px; 
-      width:min(520px, 92vw); 
-      text-align:center; 
-      box-shadow:0 20px 60px rgba(0,0,0,.5);
-      z-index: 1001;
-    }
-    .modal h2{ margin:0 0 8px }
-    .modal p{ color:var(--muted); margin:0 0 16px }
-    
-    .gate-controls { margin-top: 12px; display: flex; justify-content: center; gap: 10px; }
-  </style>
+        /* Media Queries for Responsiveness */
+        @media (max-width: 600px) {
+            .dials-container {
+                flex-wrap: wrap;
+            }
+            .dial {
+                width: 60px;
+                height: 60px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="app">
-    <header>
-      <div>
-        <div class="title">Morse Dial Puzzle Box</div>
-        <div class="subtitle">Rotate each strip so the Morse characters align to spell the hidden word.</div>
-      </div>
-      <div class="controls">
-        <button id="btnShuffle">Shuffle</button>
-        <button id="btnShare" title="Copy a link with this exact puzzle setup">Share Link</button>
-      </div>
-    </header>
-
-    <div class="wrap">
-      <div id="lock" class="lock" aria-live="polite"></div>
-      <div class="divider"></div>
-      <div class="gate locked" id="gate">
-        <div class="status">LOCKED</div>
-        <div class="word" id="currentWord">••••</div>
-        <div class="gate-controls">
-          <button id="btnUnlock">Unlock</button>
-        </div>
-        <div class="hint">Tip: use your mouse wheel or arrow buttons on each dial. Keyboard: Tab to focus a dial, then use ↑/↓.</div>
-      </div>
+    <div class="puzzle-container">
+        <h1>Morse Dial Puzzle Box</h1>
+        <div class="dial-display-window"></div>
+        <div class="dials-container">
+            </div>
+        <button id="unlock-btn">Unlock</button>
+        <p id="message"></p>
     </div>
-  </div>
+    <script>
+        const morseCode = {
+            'A': '•–', 'B': '–•••', 'C': '–•–•', 'D': '–••', 'E': '•', 'F': '••–•', 'G': '––•', 'H': '••••',
+            'I': '••', 'J': '•–––', 'K': '–•–', 'L': '•–••', 'M': '––', 'N': '–•', 'O': '–––', 'P': '•––•',
+            'Q': '––•–', 'R': '•–•', 'S': '•••', 'T': '–', 'U': '••–', 'V': '•••–', 'W': '•––', 'X': '–••–',
+            'Y': '–•––', 'Z': '––••'
+        };
 
-  <div class="overlay" id="overlay">
-    <div class="modal">
-      <h2 id="modalTitle">Box Status</h2>
-      <p id="msg"></p>
-      <button id="closeModal">Close</button>
-    </div>
-  </div>
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-  <div class="toast" id="toast">Link copied to clipboard</div>
+        // Secret word and victory message
+        let secretWord = 'CODE';
+        let victoryMessage = 'You unlocked the secret!';
 
-<script>
-(function(){
-  const MORSE = {
-    A: ".-",   B: "-...", C: "-.-.", D: "-..",  E: ".",
-    F: "..-.", G: "--.",  H: "....", I: "..",   J: ".---",
-    K: "-.-",  L: ".-..", M: "--",   N: "-.",   O: "---",
-    P: ".--.", Q: "--.-", R: ".-.",  S: "...",  T: "-",
-    U: "..-",  V: "...-", W: ".--",  X: "-..-", Y: "-.--",
-    Z: "--.."
-  };
-  const LETTERS = Object.keys(MORSE);
+        const dialsContainer = document.querySelector('.dials-container');
+        const dialDisplayWindow = document.querySelector('.dial-display-window');
+        const unlockBtn = document.getElementById('unlock-btn');
+        const messageElem = document.getElementById('message');
 
-  function caesarEncode(text, shift = 5) {
-    return text.replace(/[A-Za-z]/g, char => {
-      const isUpperCase = char === char.toUpperCase();
-      const base = isUpperCase ? 'A'.charCodeAt(0) : 'a'.charCodeAt(0);
-      const code = char.charCodeAt(0);
-      return String.fromCharCode(((code - base + shift) % 26) + base);
-    });
-  }
+        let currentPositions = [];
 
-  function caesarDecode(text, shift = 5) {
-    return text.replace(/[A-Za-z]/g, char => {
-      const isUpperCase = char === char.toUpperCase();
-      const base = isUpperCase ? 'A'.charCodeAt(0) : 'a'.charCodeAt(0);
-      const code = char.charCodeAt(0);
-      return String.fromCharCode(((code - base - shift + 26) % 26) + base);
-    });
-  }
-
-  const params = new URLSearchParams(location.search);
-  let encodedWord = params.get('word') || 'KNWJ';
-  let encodedMsg = params.get('msg') || 'Tujsy%25bs%25iwj%25hwp%25fsi%25ymnj%25qnsijx%25tujqf%3F';
-
-  let TARGET = caesarDecode(encodedWord);
-  let WINMSG = decodeURIComponent(caesarDecode(encodedMsg));
-  let TARGET_MORSE = "";
-
-  const lockEl = document.getElementById('lock');
-  const gate = document.getElementById('gate');
-  const wordEl = document.getElementById('currentWord');
-  const overlay = document.getElementById('overlay');
-  const msg = document.getElementById('msg');
-  const modalTitle = document.getElementById('modalTitle');
-  const toast = document.getElementById('toast');
-  const unlockBtn = document.getElementById('btnUnlock');
-  const closeModalBtn = document.getElementById('closeModal');
-
-  const dials = [];
-  let isSolved = false;
-
-  function makeDial(i){
-    const dial = document.createElement('div');
-    dial.className = 'dial';
-    dial.setAttribute('tabindex', '0');
-
-    const windowEl = document.createElement('div');
-    windowEl.className = 'window';
-
-    const strip = document.createElement('div');
-    strip.className =.strip';
-
-    LETTERS.forEach((L, idx)=>{
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      cell.setAttribute('data-i', idx);
-
-      const morse = document.createElement('div');
-      morse.className='morse';
-      morse.textContent = MORSE[L];
-
-      cell.appendChild(morse);
-      strip.appendChild(cell);
-    });
-
-    windowEl.appendChild(strip);
-    dial.appendChild(windowEl);
-
-    const ctrls = document.createElement('div');
-    ctrls.className = 'controls';
-    const up = document.createElement('button'); up.className='arrow'; up.innerHTML = '▲';
-    const down = document.createElement('button'); down.className='arrow'; down.innerHTML = '▼';
-    ctrls.appendChild(up); ctrls.appendChild(down);
-    dial.appendChild(ctrls);
-
-    const state = { root:dial, strip, index:0 };
-
-    function setIndex(newIndex){
-      const max = LETTERS.length;
-      state.index = (newIndex % max + max) % max;
-      
-      // DEFINITIVE FIX: Use the hardcoded height from CSS to avoid all timing issues.
-      // The cell's min-height is 28px, top/bottom padding is 6px each, and the gap is 8px.
-      // Total step height = (28 + 6 + 6) + 8 = 48.
-      const cellHeight = 48;
-
-      const offset = (windowEl.clientHeight/2) - (cellHeight/2);
-      strip.style.transform = `translateY(${offset - state.index * cellHeight}px)`;
-
-      [...strip.children].forEach((c, idx)=> c.classList.toggle('active', idx===state.index));
-      onChange();
-    }
-
-    up.addEventListener('click', ()=> setIndex(state.index-1));
-    down.addEventListener('click', ()=> setIndex(state.index+1));
-    
-    dial.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const direction = Math.sign(e.deltaY);
-        setIndex(state.index + direction);
-    });
-
-    dial.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            setIndex(state.index - 1);
-        } else if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            setIndex(state.index + 1);
+        // Caesar cipher function (shift by 5)
+        function caesarShift(str, shift) {
+            return str.split('').map(char => {
+                const code = char.charCodeAt(0);
+                if (code >= 65 && code <= 90) {
+                    return String.fromCharCode(((code - 65 + shift) % 26) + 65);
+                }
+                return char;
+            }).join('');
         }
-    });
 
-    return { ...state, setIndex };
-  }
+        // Function to get puzzle data from URL
+        function getPuzzleFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const encodedWord = urlParams.get('word');
+            const encodedMessage = urlParams.get('message');
 
-  function rebuild(){
-    lockEl.innerHTML=''; dials.length = 0;
+            if (encodedWord) {
+                secretWord = caesarShift(decodeURIComponent(encodedWord), -5);
+                victoryMessage = encodedMessage ? decodeURIComponent(encodedMessage) : 'You unlocked the puzzle!';
+            }
+        }
 
-    TARGET_MORSE = TARGET.split('').map(L => MORSE[L]).join(' ');
+        // Function to generate and display dials
+        function createDials() {
+            dialsContainer.innerHTML = '';
+            currentPositions = [];
+            for (let i = 0; i < secretWord.length; i++) {
+                const dial = document.createElement('div');
+                dial.classList.add('dial');
+                dial.setAttribute('data-index', i);
+                dial.setAttribute('tabindex', '0'); // Make it focusable
+                dial.setAttribute('role', 'button');
+                dial.setAttribute('aria-label', `Dial for character ${i + 1}`);
 
-    for(let i=0;i<TARGET.length;i++){
-      const d = makeDial(i); 
-      dials.push(d); 
-      lockEl.appendChild(d.root);
-      d.setIndex(Math.floor(Math.random()*LETTERS.length));
-    }
-    // The initial update is now implicitly handled by the first setIndex call.
-  }
+                // Initial position is random
+                const initialPosition = Math.floor(Math.random() * 26);
+                currentPositions.push(initialPosition);
 
-  function currentLetters(){
-    return dials.map(d => {
-      const L = LETTERS[d.index];
-      return MORSE[L];
-    }).join(' ');
-  }
+                // Populate dial with characters
+                const dialContent = document.createElement('div');
+                dialContent.classList.add('dial-content');
+                dial.appendChild(dialContent);
 
-  function updateWord(){
-    const letters = currentLetters();
-    wordEl.textContent = letters || '•';
-  }
+                for (let j = 0; j < 26; j++) {
+                    const charDiv = document.createElement('div');
+                    charDiv.classList.add('dial-character');
+                    charDiv.textContent = alphabet[(initialPosition + j) % 26];
 
-  function checkSolved(){
-    const letters = currentLetters();
-    isSolved = letters === TARGET_MORSE;
-    gate.classList.toggle('unlocked', isSolved);
-    gate.classList.toggle('locked', !isSolved);
-    gate.querySelector('.status').textContent = isSolved ? 'UNLOCKED' : 'LOCKED';
-    return isSolved;
-  }
+                    const angle = (j / 26) * 360;
+                    charDiv.style.transform = `rotate(${angle}deg) translateY(-40px) translateX(25px)`;
+                    
+                    dialContent.appendChild(charDiv);
+                }
 
-  function onChange(){
-    updateWord();
-    checkSolved();
-  }
+                dialsContainer.appendChild(dial);
+            }
+            updateDisplay();
+        }
 
-  function shuffle(){ 
-    dials.forEach(d=> d.setIndex(Math.floor(Math.random()*LETTERS.length))); 
-  }
+        // Function to update the display window
+        function updateDisplay() {
+            const currentMorse = currentPositions.map(pos => morseCode[alphabet[pos]]).join(' ');
+            dialDisplayWindow.textContent = currentMorse;
+        }
 
-  function share(){
-    const encodedWord = caesarEncode(TARGET);
-    const encodedMsg = encodeURIComponent(caesarEncode(WINMSG));
-    
-    const url = new URL(location.origin + location.pathname);
-    url.searchParams.set('word', encodedWord);
-    url.searchParams.set('msg', encodedMsg);
-    navigator.clipboard.writeText(url.toString()).then(()=>{
-      toast.textContent = 'Shareable puzzle link copied!';
-      toast.classList.add('show');
-      setTimeout(()=> toast.classList.remove('show'), 1800);
-    });
-  }
+        // Function to rotate a dial
+        function rotateDial(dialIndex, direction) {
+            let newPosition = currentPositions[dialIndex] + direction;
+            if (newPosition < 0) newPosition = 25;
+            if (newPosition > 25) newPosition = 0;
+            currentPositions[dialIndex] = newPosition;
 
-  function unlock() {
-    if (!isSolved) { // Use the isSolved state variable
-      modalTitle.textContent = "Incorrect Combination";
-      msg.textContent = `The selected combination is not correct. Keep trying!`;
-      overlay.classList.add('show');
-    } else {
-      modalTitle.textContent = "Box Unlocked!";
-      msg.innerHTML = WINMSG + `<br><br>Word: ${TARGET}`;
-      overlay.classList.add('show');
-    }
-  }
+            const dial = dialsContainer.children[dialIndex];
+            const dialContent = dial.querySelector('.dial-content');
+            const angle = (newPosition / 26) * 360;
+            dialContent.style.transform = `rotate(-${angle}deg)`;
 
-  document.getElementById('btnShuffle').addEventListener('click', shuffle);
-  document.getElementById('btnShare').addEventListener('click', share);
-  unlockBtn.addEventListener('click', unlock);
-  closeModalBtn.addEventListener('click', () => {
-    overlay.classList.remove('show');
-  });
+            updateDisplay();
+        }
 
-  rebuild();
-  console.log("Target word:", TARGET, "→ Morse:", TARGET_MORSE);
-})();
-</script>
+        // Check if the current combination is correct
+        function checkSolution() {
+            const currentWord = currentPositions.map(pos => alphabet[pos]).join('');
+            if (currentWord === secretWord) {
+                messageElem.textContent = victoryMessage;
+                messageElem.style.color = 'lime';
+                unlockBtn.disabled = true;
+            } else {
+                messageElem.textContent = 'Still locked. Try again!';
+                messageElem.style.color = 'red';
+            }
+        }
 
+        // Event listeners
+        dialsContainer.addEventListener('click', (e) => {
+            const dial = e.target.closest('.dial');
+            if (dial) {
+                const dialIndex = parseInt(dial.getAttribute('data-index'));
+                rotateDial(dialIndex, 1); // Rotate clockwise on click
+            }
+        });
+
+        unlockBtn.addEventListener('click', checkSolution);
+
+        // Initial setup
+        getPuzzleFromUrl();
+        createDials();
+    </script>
 </body>
 </html>
