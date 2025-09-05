@@ -295,7 +295,7 @@
     const encodedWord = caesarEncode(TARGET);
     const encodedMsg = encodeURIComponent(caesarEncode(WINMSG));
     
-    const url = new URL(location.href);
+    const url = new URL(location.origin + location.pathname);
     url.searchParams.set('word', encodedWord);
     url.searchParams.set('msg', encodedMsg);
     navigator.clipboard.writeText(url.toString()).then(()=>{
