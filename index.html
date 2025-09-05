@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Morse Dial Puzzle Box</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#121925;
+      --accent:#6ee7ff;
+      --accent2:#a78bfa;
+      --good:#34d399;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --text:#e6f1ff;
+      --muted:#97a3b6;
+      --ring: 0 0 0 2px rgba(110,231,255,.15), 0 0 32px rgba(110,231,255,.08) inset;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; 
+      background: radial-gradient(1200px 700px at 70% -10%, #162032 0%, var(--bg) 60%);
+      color:var(--text); display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .app{width:min(1100px,100%);}
+
+    header{display:flex; gap:16px; align-items:center; justify-content:space-between; margin-bottom:16px}
+    .title{font-size:clamp(20px,3vw,28px); letter-spacing:.5px; font-weight:700}
+    .subtitle{color:var(--muted); font-size:14px}
+
+    .wrap{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.06); border-radius:20px; padding:18px; box-shadow:0 10px 40px rgba(0,0,0,.35);}
+
+    .controls{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+    button, .btn{
+      background:linear-gradient(180deg, #1a2436, #12192a);
+      color:var(--text); border:1px solid rgba(255,255,255,.08); padding:10px 14px; border-radius:12px;
+      cursor:pointer; transition:transform .05s ease, box-shadow .2s ease, border-color .2s ease; box-shadow:var(--ring);
+      font-weight:600; letter-spacing:.3px; user-select:none;
+    }
+    button:hover{border-color:rgba(110,231,255,.35)}
+    button:active{transform:translateY(1px)}
+    .ghost{background:transparent; border-color:rgba(255,255,255,.12)}
+
+    .grid{display:grid; gap:18px;}
+    @media (min-width:900px){ .grid{ grid-template-columns: 1fr; } }
+
+    .lock{display:flex; gap:16px; justify-content:center; align-items:stretch; padding:18px;}
+    .dial{
+      width:min(180px,22vw); background:linear-gradient(180deg, #0f1624, #0c1220);
+      border:1px solid rgba(255,255,255,.08); border-radius:18px; position:relative; overflow:hidden; box-shadow:0 4px 30px rgba(0,0,0,.35);
+      display:flex; flex-direction:column; align-items:stretch; justify-content:space-between;
+    }
+    .dial .head{display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.06);}
+    .dial .label{font-size:12px; color:var(--muted); letter-spacing:.4px}
+    .dial .index{font-variant-numeric:tabular-nums; font-weight:700; color:#c8d7ff}
+
+    .window{ position:relative; height:140px; margin:10px; border-radius:12px; border:1px solid rgba(255,255,255,.06); background:radial-gradient(240px 120px at 50% 10%, rgba(167,139,250,.15), transparent 60%); overflow:hidden; }
+    .strip{ position:absolute; left:0; right:0; top:0; display:flex; flex-direction:column; align-items:center; gap:8px; transition: transform .25s cubic-bezier(.2,.7,.2,1); padding:8px 0; }
+    .cell{ padding:6px 10px; min-height:28px; display:flex; align-items:center; gap:8px; opacity:.45; filter:saturate(.7); }
+    .cell .morse{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; letter-spacing:2px; }
+    .cell .letter{ font-size:12px; color:var(--muted); opacity:.0; transition:opacity .2s; }
+
+    .cell.active{ opacity:1; filter:none; transform:scale(1.03); }
+    .cell.active .letter.revealed{ opacity:.9; }
+
+    .dial .controls{ padding:10px; border-top:1px solid rgba(255,255,255,.06); display:flex; gap:8px; justify-content:space-between }
+    .arrow{ width:40px; height:40px; border-radius:10px; font-size:18px; display:flex; align-items:center; justify-content:center; }
+
+    .gate{ margin-top:16px; text-align:center; }
+    .gate .status{ font-weight:700; letter-spacing:.4px; }
+    .gate.locked .status{ color:var(--warn); }
+    .gate.unlocked .status{ color:var(--good); text-shadow:0 0 18px rgba(52,211,153,.35); }
+    .gate .word{ margin-top:8px; font-size:22px; letter-spacing:6px; }
+
+    .hint{ color:var(--muted); font-size:13px; margin-top:10px }
+    .divider{height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent); margin:14px 0}
+
+    .toast{ position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:#0f1624; border:1px solid rgba(255,255,255,.1); padding:10px 14px; border-radius:10px; color:var(--text); display:none }
+    .toast.show{ display:block }
+
+    .overlay{ position:fixed; inset:0; background:radial-gradient(900px 600px at 50% -10%, rgba(52,211,153,.12), transparent 60%), rgba(0,0,0,.45); display:none; place-items:center; }
+    .overlay.show{ display:grid }
+    .modal{ background:linear-gradient(180deg, #162238, #0f182b); border:1px solid rgba(255,255,255,.12); border-radius:20px; padding:22px; width:min(520px, 92vw); text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.5) }
+    .modal h2{ margin:0 0 8px }
+    .modal p{ color:var(--muted); margin:0 0 16px }
+    
+    .gate-controls { margin-top: 12px; display: flex; justify-content: center; gap: 10px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <div class="title">Morse Dial Puzzle Box</div>
+        <div class="subtitle">Rotate each strip so the Morse characters align to spell the hidden word.</div>
+      </div>
+      <div class="controls">
+        <button id="btnShuffle">Shuffle</button>
+        <button id="btnShare" title="Copy a link with this exact puzzle setup">Share Link</button>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <div id="lock" class="lock" aria-live="polite"></div>
+      <div class="divider"></div>
+      <div class="gate locked" id="gate">
+        <div class="status">LOCKED</div>
+        <div class="word" id="currentWord">••••</div>
+        <div class="gate-controls">
+          <button id="btnUnlock" disabled>Unlock</button>
+        </div>
+        <div class="hint">Tip: use your mouse wheel or arrow buttons on each dial. Keyboard: Tab to focus a dial, then use ↑/↓.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2 id="modalTitle">Box Status</h2>
+      <p id="msg"></p>
+      <button onclick="document.getElementById('overlay').classList.remove('show')">Close</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Link copied to clipboard</div>
+
+<script>
+(function(){
+  const MORSE = {
+    A: ".-",   B: "-...", C: "-.-.", D: "-..",  E: ".",
+    F: "..-.", G: "--.",  H: "....", I: "..",   J: ".---",
+    K: "-.-",  L: ".-..", M: "--",   N: "-.",  O: "---",
+    P: ".--.", Q: "--.-", R: ".-.",  S: "...",  T: "-",
+    U: "..-",  V: "...-", W: ".--",  X: "-..-", Y: "-.--",
+    Z: "--.."
+  };
+  const LETTERS = Object.keys(MORSE);
+
+  // Caesar cipher functions
+  function caesarEncode(text, shift = 5) {
+    return text.replace(/[A-Za-z]/g, char => {
+      const isUpperCase = char === char.toUpperCase();
+      const base = isUpperCase ? 'A'.charCodeAt(0) : 'a'.charCodeAt(0);
+      const code = char.charCodeAt(0);
+      return String.fromCharCode(((code - base + shift) % 26) + base);
+    });
+  }
+
+  function caesarDecode(text, shift = 5) {
+    return text.replace(/[A-Za-z]/g, char => {
+      const isUpperCase = char === char.toUpperCase();
+      const base = isUpperCase ? 'A'.charCodeAt(0) : 'a'.charCodeAt(0);
+      const code = char.charCodeAt(0);
+      return String.fromCharCode(((code - base - shift + 26) % 26) + base);
+    });
+  }
+
+  // Get and decode URL parameters
+  const params = new URLSearchParams(location.search);
+  let encodedWord = params.get('word') || 'KNWJ'; // Default 'FIRE' encoded as 'KNWJ'
+  let encodedMsg = params.get('msg') || 'Tujsy%25bs%25iwj%25hwp%25fsi%25ymnj%25qnsijx%25tujqf%3F'; // Default message encoded
+  
+  // Decode parameters
+  let TARGET = caesarDecode(encodedWord);
+  let WINMSG = decodeURIComponent(caesarDecode(encodedMsg));
+
+  const lockEl = document.getElementById('lock');
+  const gate = document.getElementById('gate');
+  const wordEl = document.getElementById('currentWord');
+  const overlay = document.getElementById('overlay');
+  const msg = document.getElementById('msg');
+  const modalTitle = document.getElementById('modalTitle');
+  const toast = document.getElementById('toast');
+  const unlockBtn = document.getElementById('btnUnlock');
+
+  const dials = [];
+  let isSolved = false;
+
+  function makeDial(i){
+    const dial = document.createElement('div');
+    dial.className = 'dial';
+    dial.setAttribute('role','group');
+    dial.setAttribute('aria-label',`Dial ${i+1}`);
+
+    const head = document.createElement('div');
+    head.className = 'head';
+    head.innerHTML = `<div class="label">STRIP ${i+1}</div><div class="index" data-index>0</div>`;
+
+    const windowEl = document.createElement('div');
+    windowEl.className = 'window';
+
+    const strip = document.createElement('div');
+    strip.className = 'strip';
+
+    LETTERS.forEach((L, idx)=>{
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.setAttribute('data-i', idx);
+      const morse = document.createElement('div'); morse.className='morse'; morse.textContent = MORSE[L];
+      const letter = document.createElement('div'); letter.className='letter'; letter.textContent = L;
+      cell.appendChild(morse); cell.appendChild(letter);
+      strip.appendChild(cell);
+    });
+
+    windowEl.appendChild(strip);
+
+    const ctrls = document.createElement('div');
+    ctrls.className = 'controls';
+    const up = document.createElement('button'); up.className='arrow'; up.innerHTML = '▲';
+    const down = document.createElement('button'); down.className='arrow'; down.innerHTML = '▼';
+    ctrls.appendChild(up); ctrls.appendChild(down);
+
+    dial.appendChild(head); dial.appendChild(windowEl); dial.appendChild(ctrls);
+
+    const state = { root:dial, strip, headIndex:head.querySelector('[data-index]'), index:0 };
+
+    function setIndex(newIndex){
+      const max = LETTERS.length;
+      state.index = (newIndex % max + max) % max;
+      state.headIndex.textContent = state.index;
+
+      const cellH = strip.querySelector('.cell').offsetHeight + 8;
+      const offset = (windowEl.clientHeight/2) - (cellH/2);
+      strip.style.transform = `translateY(${offset - state.index*cellH}px)`;
+
+      [...strip.children].forEach((c, idx)=> c.classList.toggle('active', idx===state.index));
+      onChange();
+    }
+
+    up.addEventListener('click', ()=> setIndex(state.index-1));
+    down.addEventListener('click', ()=> setIndex(state.index+1));
+
+    dial.tabIndex = 0;
+    dial.addEventListener('wheel', e=>{ e.preventDefault(); setIndex(state.index + Math.sign(e.deltaY)); }, {passive:false});
+    dial.addEventListener('keydown', e=>{ if(e.key==='ArrowUp'){ e.preventDefault(); setIndex(state.index-1);} else if(e.key==='ArrowDown'){ e.preventDefault(); setIndex(state.index+1);} });
+
+    setIndex(Math.floor(Math.random()*LETTERS.length));
+
+    return { ...state, setIndex };
+  }
+
+  function rebuild(){
+    lockEl.innerHTML=''; dials.length = 0;
+    for(let i=0;i<TARGET.length;i++){
+      const d = makeDial(i); dials.push(d); lockEl.appendChild(d.root);
+    }
+    updateWord();
+  }
+
+  function currentLetters(){ return dials.map(d=> LETTERS[d.index]).join(''); }
+  function updateWord(){
+    const letters = currentLetters();
+    wordEl.textContent = letters || '•';
+  }
+
+  function checkSolved(){
+    const letters = currentLetters();
+    isSolved = letters === TARGET;
+    gate.classList.toggle('unlocked', isSolved);
+    gate.classList.toggle('locked', !isSolved);
+    gate.querySelector('.status').textContent = isSolved ? 'UNLOCKED' : 'LOCKED';
+    unlockBtn.disabled = !isSolved;
+    return isSolved;
+  }
+
+  function onChange(){
+    updateWord();
+    checkSolved();
+  }
+
+  function shuffle(){ dials.forEach(d=> d.setIndex(Math.floor(Math.random()*LETTERS.length))); }
+
+  function share(){
+    // Encode parameters before sharing
+    const encodedWord = caesarEncode(TARGET);
+    const encodedMsg = encodeURIComponent(caesarEncode(WINMSG));
+    
+    const url = new URL(location.href);
+    url.searchParams.set('word', encodedWord);
+    url.searchParams.set('msg', encodedMsg);
+    navigator.clipboard.writeText(url.toString()).then(()=>{
+      toast.textContent = 'Shareable puzzle link copied!';
+      toast.classList.add('show');
+      setTimeout(()=> toast.classList.remove('show'), 1800);
+    });
+  }
+
+  function unlock() {
+    const letters = currentLetters();
+    if (letters === TARGET) {
+        modalTitle.textContent = "Box Unlocked!";
+        msg.textContent = WINMSG + `\nWord: ${TARGET}`;
+        overlay.classList.add('show');
+    } else {
+        modalTitle.textContent = "Incorrect Combination";
+        msg.textContent = `"${letters}" is not the correct word. Keep trying!`;
+        overlay.classList.add('show');
+    }
+  }
+
+  document.getElementById('btnShuffle').addEventListener('click', shuffle);
+  document.getElementById('btnShare').addEventListener('click', share);
+  unlockBtn.addEventListener('click', unlock);
+
+  rebuild();
+
+  window.setWord = function(w){ TARGET = String(w||'').toUpperCase().replace(/[^A-Z]/g,''); if(!TARGET) TARGET='FIRE'; rebuild(); }
+  window.setWinMsg = function(s){ }
+})();
+</script>
+</body>
+</html>
