@@ -206,7 +206,7 @@
     windowEl.className = 'window';
 
     const strip = document.createElement('div');
-    strip.className = 'strip';
+    strip.className =.strip';
 
     LETTERS.forEach((L, idx)=>{
       const cell = document.createElement('div');
@@ -232,21 +232,15 @@
     dial.appendChild(ctrls);
 
     const state = { root:dial, strip, index:0 };
-    let cellHeight = 0; // Cache for the calculated cell height
 
     function setIndex(newIndex){
       const max = LETTERS.length;
       state.index = (newIndex % max + max) % max;
       
-      // Calculate height only once for performance and to avoid timing issues
-      if (!cellHeight) {
-          const cellEl = strip.querySelector('.cell');
-          if (cellEl && cellEl.offsetHeight > 0) {
-              cellHeight = cellEl.offsetHeight + 8; // The total step height including gap
-          } else {
-              return; // Height not available yet, exit to prevent errors
-          }
-      }
+      // DEFINITIVE FIX: Use the hardcoded height from CSS to avoid all timing issues.
+      // The cell's min-height is 28px, top/bottom padding is 6px each, and the gap is 8px.
+      // Total step height = (28 + 6 + 6) + 8 = 48.
+      const cellHeight = 48;
 
       const offset = (windowEl.clientHeight/2) - (cellHeight/2);
       strip.style.transform = `translateY(${offset - state.index * cellHeight}px)`;
@@ -260,7 +254,7 @@
     
     dial.addEventListener('wheel', (e) => {
         e.preventDefault();
-        const direction = Math.sign(e.deltaY); // -1 for up, 1 for down
+        const direction = Math.sign(e.deltaY);
         setIndex(state.index + direction);
     });
 
@@ -274,7 +268,6 @@
         }
     });
 
-    // DO NOT set index here. It will be set in rebuild() after the element is in the DOM.
     return { ...state, setIndex };
   }
 
@@ -287,12 +280,9 @@
       const d = makeDial(i); 
       dials.push(d); 
       lockEl.appendChild(d.root);
-      // FIX: Set the initial random index AFTER the dial is added to the page.
-      // This ensures its dimensions can be calculated correctly.
       d.setIndex(Math.floor(Math.random()*LETTERS.length));
     }
-    updateWord();
-    checkSolved();
+    // The initial update is now implicitly handled by the first setIndex call.
   }
 
   function currentLetters(){
@@ -313,7 +303,6 @@
     gate.classList.toggle('unlocked', isSolved);
     gate.classList.toggle('locked', !isSolved);
     gate.querySelector('.status').textContent = isSolved ? 'UNLOCKED' : 'LOCKED';
-    unlockBtn.disabled = false; 
     return isSolved;
   }
 
@@ -341,16 +330,13 @@
   }
 
   function unlock() {
-    const letters = currentLetters();
-    console.log('Unlock clicked —', letters, 'TARGET:', TARGET_MORSE);
-
-    if (letters === TARGET_MORSE) {
-      modalTitle.textContent = "Box Unlocked!";
-      msg.innerHTML = WINMSG + `<br><br>Word: ${TARGET}`;
+    if (!isSolved) { // Use the isSolved state variable
+      modalTitle.textContent = "Incorrect Combination";
+      msg.textContent = `The selected combination is not correct. Keep trying!`;
       overlay.classList.add('show');
     } else {
-      modalTitle.textContent = "Incorrect Combination";
-      msg.textContent = `"${letters}" is not the correct sequence. Keep trying!`;
+      modalTitle.textContent = "Box Unlocked!";
+      msg.innerHTML = WINMSG + `<br><br>Word: ${TARGET}`;
       overlay.classList.add('show');
     }
   }
